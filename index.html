@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cuaderno</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --paper:#f6f3ee;
+      --pencil:#2f2f2f;
+      --line: rgba(0,0,0,0.035);
+      --shadow: rgba(0,0,0,0.10);
+      --marginLeft: 44px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:'Patrick Hand', cursive;
+      color:var(--pencil);
+      background-color:var(--paper);
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 28px,
+        var(--line) 29px
+      );
+      padding-bottom: 92px;
+    }
+
+    main{
+      min-height: calc(100vh - 92px);
+      padding: 56px 18px 28px;
+    }
+
+    .sheet{
+      width:100%;
+      max-width: 560px;
+      margin:0 auto;
+      position: relative;
+      padding: 8px 2px;
+    }
+
+    /* margen + pequeñas imperfecciones */
+    .sheet::before{
+      content:"";
+      position:absolute;
+      top:0; bottom:0;
+      left: 10px;
+      width: 1px;
+      background: rgba(0,0,0,0.03);
+      transform: rotate(-0.25deg);
+      opacity: 0.35;
+      pointer-events:none;
+    }
+    .sheet::after{
+      content:"";
+      position:absolute;
+      top: 18px;
+      right: 18px;
+      width: 54px;
+      height: 10px;
+      border-bottom: 2px solid rgba(0,0,0,0.08);
+      transform: rotate(-4deg);
+      opacity: 0.7;
+      pointer-events:none;
+    }
+
+    /* MAIN */
+    .mainWrap{
+      min-height: 48vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 24px 10px;
+    }
+
+    .openBtn{
+      border: 1px solid rgba(0,0,0,0.18);
+      background: rgba(255,255,255,0.28);
+      color: rgba(0,0,0,0.72);
+      padding: 12px 14px;
+      border-radius: 999px;
+      font-size: 1.15rem;
+      line-height: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor:pointer;
+      user-select:none;
+      opacity: 0.8;
+    }
+    .openBtn:active{ transform: translateY(1px); }
+
+    /* Mensaje “aparece” como hoja pasada (sin cambiar de pestaña) */
+    .mainMessage{
+      display:none;
+      font-size: 1.65rem;
+      line-height: 1.6;
+      opacity: 0.92;
+    }
+
+    /* fade suave (y leve “revelado”) */
+    .reveal{
+      display:inline-block;
+      animation: softReveal 0.8s ease-out both;
+    }
+    @keyframes softReveal{
+      from{ opacity: 0; filter: blur(0.6px); clip-path: inset(0 100% 0 0); }
+      to  { opacity: 1; filter: blur(0px);   clip-path: inset(0 0 0 0); }
+    }
+
+    /* PANELES */
+    .panel{
+      display:none;
+      padding: 10px 10px 20px;
+      font-size: 1.22rem;
+      line-height: 1.85;
+      padding-left: calc(var(--marginLeft) + 10px);
+    }
+    .panel.active{
+      display:block;
+      animation: fadeIn 420ms ease-out;
+    }
+
+    .panelTitle{
+      font-size: 1.38rem;
+      font-weight: 700;
+      color: rgba(0,0,0,0.82);
+      margin: 0 0 18px 0;
+      letter-spacing: 0.2px;
+    }
+    .panelBody{
+      color: rgba(0,0,0,0.62);
+      white-space: pre-wrap;
+    }
+    .wobble{
+      display:inline-block;
+      transform: translateY(1px) rotate(-0.8deg);
+    }
+
+    /* Footbar */
+    .footbar{
+      position: fixed;
+      left:0; right:0; bottom:0;
+      padding: 10px 10px 14px;
+      backdrop-filter: blur(6px);
+      background: linear-gradient(to top, rgba(246,243,238,0.95), rgba(246,243,238,0.78));
+      border-top: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 -6px 18px var(--shadow);
+    }
+
+    .hint{
+      font-size: 0.95rem;
+      opacity: 0.6;
+      margin: 0 0 8px 4px;
+    }
+
+    .btnRow{
+      display:flex;
+      gap: 8px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+    .btnRow::-webkit-scrollbar{ height: 6px; }
+    .btnRow::-webkit-scrollbar-thumb{ background: rgba(0,0,0,0.12); border-radius: 999px; }
+
+    .tabBtn{
+      flex: 0 0 auto;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: rgba(255,255,255,0.42);
+      color: var(--pencil);
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      line-height: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor:pointer;
+      user-select:none;
+    }
+    .tabBtn.active{
+      background: rgba(0,0,0,0.08);
+      border-color: rgba(0,0,0,0.22);
+    }
+
+    @keyframes fadeIn{
+      from{ opacity: 0; transform: translateY(6px); }
+      to{ opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <div class="sheet">
+
+      <!-- MAIN -->
+      <div class="mainWrap" id="mainWrap">
+        <button class="openBtn" id="openBtn" aria-label="Abrir la libreta">▢ Abrir la libreta</button>
+
+        <div class="mainMessage" id="mainMessage" aria-label="Mensaje">
+          <span class="reveal">Feliz Navidad,<br>Melinda Morales</span>
+        </div>
+      </div>
+
+      <!-- EXPLICACIONES -->
+      <section class="panel" id="p1" aria-label="Poema 1. ayudar">
+        <div class="panelTitle">Poema 1. ayudar</div>
+        <div class="panelBody">Para Yasashisa, no fue algo genial ni importante.
+Solo dio indicaciones.
+Algo normal.
+Algo que cualquiera pudo haber hecho.
+
+Ella compró sus cosas, estaba por volver a casa,
+y nadie había ayudado al pollo.
+Entonces lo hizo ella.
+
+Quizás el gesto no fue especial en sí.
+Puede minimizarse diciendo que cualquiera pudo hacerlo.
+Pero nadie lo hizo… hasta que lo hizo ella.
+
+Para el pollo, no fue algo cualquiera.
+Fue una gata amable quien le tendió la mano.
+Y solo fue <span class="wobble">ella</span>.
+
+Extender una mano hace que
+aquello que cualquiera pudo haber hecho
+se vuelva un acto especial,
+porque ahora tiene un rostro,
+y fue ese rostro el que apareció
+en el momento indicado.</div>
+      </section>
+
+      <section class="panel" id="p2" aria-label="Poema 2. Obviedades">
+        <div class="panelTitle">Poema 2. Obviedades</div>
+        <div class="panelBody">Yasashisa piensa que no hizo nada.
+Que fue grosera.
+Que no dijo nada fuera de este mundo,
+solo obviedades que cualquiera sabría.
+
+Para ella no fue algo especial;
+cree que fue más la mala gana
+que la ayuda real.
+
+Pero para la jirafa,
+esa respuesta abrió nuevas formas
+de encontrar tranquilidad.
+
+Lo que para ti son obviedades,
+para otros puede ser un nuevo panorama,
+puertas que se abren.
+
+Y aunque Yasashisa se perciba grosera,
+ayudó más de lo que cree
+y fue mucho menos ruda
+de lo que imagina.</div>
+      </section>
+
+      <section class="panel" id="p3" aria-label="Cuadro 3 (sin poema)">
+        <div class="panelTitle">Cuadro 3 (sin poema)</div>
+        <div class="panelBody">En este cuadro no hay poema.
+No salió.
+No fue algo muy especial ni extraordinario.
+
+El regalo tampoco fue algo único.
+Fue un detalle sencillo,
+algo que cualquiera pudo haber dado.
+
+Pero nació de una conversación banal,
+de esas que no parecen importantes
+y que suelen olvidarse.
+
+Que Yasashisa recordara ese pequeño detalle
+es lo que lo vuelve especial.
+
+El poema no existe
+porque no es necesario.
+El gesto ya dice todo lo que hacía falta.
+
+A veces,
+recordar algo pequeño
+es el regalo perfecto.</div>
+      </section>
+
+      <section class="panel" id="p4" aria-label="Poema 4 – Lastimar">
+        <div class="panelTitle">Poema 4 – Lastimar</div>
+        <div class="panelBody">Hay verdades que duelen,
+pero necesitan ser dichas
+para poder avanzar
+hacia lo que quizá sea un mejor camino.
+
+Pocas personas son capaces de decirlas
+desde el cariño
+y la preocupación genuina.
+
+A veces esas verdades lastiman,
+pero no enojan.
+Solo dejan una tristeza leve,
+que se calma al saber
+que hubo alguien
+que se preocupó lo suficiente
+como para decir
+lo que nadie quería escuchar.</div>
+      </section>
+
+      <section class="panel" id="p5" aria-label="Poema 5. Uno nunca es más que dos">
+        <div class="panelTitle">Poema 5. Uno nunca es más que dos</div>
+        <div class="panelBody">El título suena evidente, y lo es.
+Pero aun siendo algo tan evidente,
+es algo que podemos olvidar.
+
+A veces creemos
+que todo el peso debe sostenerse
+sobre una sola base.
+
+Quizás no siempre habrá
+una mano que se extienda para ayudar.
+Pero si la vemos,
+no es malo,
+no está mal tomarla.</div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- FOOTBAR -->
+  <footer class="footbar" role="navigation" aria-label="Explicaciones">
+    <div class="hint">Explicaciones</div>
+    <div class="btnRow">
+      <button class="tabBtn" data-target="main">Main</button>
+      <button class="tabBtn" data-target="p1">Ayudar</button>
+      <button class="tabBtn" data-target="p2">Obviedades</button>
+      <button class="tabBtn" data-target="p3">Cuadro 3</button>
+      <button class="tabBtn" data-target="p4">Lastimar</button>
+      <button class="tabBtn" data-target="p5">Uno &amp; dos</button>
+    </div>
+  </footer>
+
+  <script>
+    (function(){
+      const buttons = Array.from(document.querySelectorAll('.tabBtn'));
+      const panels  = Array.from(document.querySelectorAll('.panel'));
+      const mainWrap = document.getElementById('mainWrap');
+      const openBtn  = document.getElementById('openBtn');
+      const mainMsg  = document.getElementById('mainMessage');
+
+      function setActive(btn){
+        buttons.forEach(b => b.classList.toggle('active', b === btn));
+      }
+
+      function showMain(){
+        panels.forEach(p => p.classList.remove('active'));
+        mainWrap.style.display = 'flex';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function showPanel(id){
+        mainWrap.style.display = 'none';
+        panels.forEach(p => p.classList.toggle('active', p.id === id));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Main: abrir libreta -> aparece el mensaje (sin cambiar de pestaña)
+      openBtn.addEventListener('click', () => {
+        openBtn.style.display = 'none';
+        mainMsg.style.display = 'block';
+
+        // reinicia animación de “reveal” por si se vuelve a entrar
+        const span = mainMsg.querySelector('.reveal');
+        span.style.animation = 'none';
+        void span.offsetWidth;
+        span.style.animation = '';
+      });
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-target');
+          setActive(btn);
+          if(target === 'main') showMain();
+          else showPanel(target);
+        });
+      });
+
+      // Estado inicial
+      setActive(buttons[0]);
+      showMain();
+    })();
+  </script>
+</body>
+</html>
